@@ -58,6 +58,36 @@ cd searxng-docker
 > network mode) with the `BIND_ADDRESS` environment variable (defaults to `[::]:8080`). The environment variable can be
 > set directly inside `docker-compose.yaml`.
 
+## Configuration notes
+
+- Port mapping and Caddy
+   - This stack ships with Caddy as a reverse proxy. By default, the SearXNG container listens on port 8080 inside the
+      container and is published on the host at `127.0.0.1:2077` (see `ports` in `docker-compose.yaml`).
+   - The provided `Caddyfile` currently proxies to `localhost:8080`. If you keep the default host port `2077`, change the
+      reverse proxy target accordingly, or alternatively change the compose mapping to expose 8080 on the host:
+      - Option A: Update `Caddyfile` target to `localhost:2077`.
+      - Option B: Update `docker-compose.yaml` ports to `127.0.0.1:8080:8080` so the existing `reverse_proxy localhost:8080`
+         continues to work.
+
+### Environment variables
+
+The `.env` file is used by `docker compose` and Caddy:
+
+- `SEARXNG_HOSTNAME`: Your public URL (for example `search.example.org`).
+- `LETSENCRYPT_EMAIL`: Email used by Caddy for ACME/Let’s Encrypt. If not set, Caddy uses an internal CA.
+- `SEARXNG_BASE_URL`: Set via `docker-compose.yaml` and derived from `SEARXNG_HOSTNAME`. Overrides can be made per your setup.
+- `BIND_ADDRESS`: Optional. Change the address/port SearXNG binds to inside the container (default `[::]:8080`).
+
+### Data persistence
+
+Configuration and data locations:
+
+- `./searxng/` is mounted into the container at `/etc/searxng` for your instance configuration (`settings.yml`, etc.).
+- Named volumes are used to persist data across container restarts:
+   - `caddy-data`, `caddy-config`: Caddy certificates and state.
+   - `valkey-data2`: Valkey (Redis-compatible) data.
+   - `searxng-data`: SearXNG cache.
+
 ## Troubleshooting - How to access the logs
 
 To access the logs from all the containers use: `docker compose logs -f`.
